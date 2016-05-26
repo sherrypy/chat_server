@@ -1,3 +1,10 @@
+#### Features
+- Share your thoughts with everyone online.
+- Mute broadcast messages whenever you get annoyed.
+- Stay close to your friends with group chat. 
+- Send private messages to specific user.
+- Keep receiving private messages even when you offline.
+
 #### Set Up
 - To run your own chat server. Simply running **sherry_chat.py** on any Linux server.
 
@@ -25,11 +32,5 @@ $telnet sherrychat.ddns.net 8888
 - `#[group_name] [message]`   : send message to all group members.
 - `@[user_name] [message]`    : send private message to user [user_name].
 
-#### Features
-- Share your thoughts with everyone online.
-- Mute broadcast messages whenever you get annoyed.
-- Stay close to your friends with group chat. 
-- Send private messages to specific user.
-- Keep receiving private messages even when you offline.
 
 
