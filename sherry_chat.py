@@ -128,9 +128,17 @@ class ChatServer(threading.Thread):
             if len(group_component) == 1:
                 group_name = group_component[0]
                 try:
-                    msg = '[%s]%s: %s' % (
-                        group_name, self.name, buf.split(' ', 1)[1])
-                    self.group_post(group_name, msg)
+                    emo = buf.split(' ')[1].strip()
+                    emo = emoji.check_emoji(emo)
+                    if emo:
+                        msg = '[%s]%s: %s' % (
+                            group_name, self.name, emo)
+                        self.group_post(group_name, msg)
+                        self.print_indicator(emo)
+                    else:
+                        msg = '[%s]%s: %s' % (
+                            group_name, self.name, buf.split(' ', 1)[1])
+                        self.group_post(group_name, msg)
                 except IndexError:
                     self.print_indicator(
                         '--command not found.\
@@ -145,6 +153,10 @@ class ChatServer(threading.Thread):
                     self.group_leave(group_name)
                 elif group_component[1] == 'list':
                     self.group_members(group_name)
+                else:
+                    self.print_indicator(
+                        '--command not found.\
+                        \nEnter `/help` to see all commands.')
             return True
 
         if buf.find('@') == 0:
@@ -162,36 +174,12 @@ class ChatServer(threading.Thread):
             return True
 
         # emoji
-        if buf.find('/welcome') == 0:
-            self.print_indicator(emoji.welcome())
+        msg = emoji.check_emoji(buf)
+        if msg:
+            self.broadcast('%s: %s' % (self.name, msg), clients)
+            self.print_indicator(msg)
             return True
-        if buf.find('/h5') == 0:
-            self.print_indicator(emoji.highFive())
-            return True
-        if buf.find('/fight') == 0:
-            self.print_indicator(emoji.fight())
-            return True
-        if buf.find('/down') == 0:
-            self.print_indicator(emoji.lieDown())
-            return True
-        if buf.find('/confuse') == 0:
-            self.print_indicator(emoji.confuse())
-            return True
-        if buf.find('/love') == 0:
-            self.print_indicator(emoji.love())
-            return True
-        if buf.find('/cry') == 0:
-            self.print_indicator(emoji.cry())
-            return True
-        if buf.find('/angry') == 0:
-            self.print_indicator(emoji.angry())
-            return True
-        if buf.find('/happy') == 0:
-            self.print_indicator(emoji.happy())
-            return True
-        if buf.find('/awk') == 0:
-            self.print_indicator(emoji.awkward())
-            return True
+
 
     #show all active users
     def list_user(self):
@@ -325,7 +313,7 @@ class ChatServer(threading.Thread):
                 conn.send(msg + '\n>> ')
             # if current user
             else:
-                self.conn.send('>> ') if to_self else self.conn.send('')
+                self.conn.send('>> ') if to_self else self.conn.send(msg + '\n>> ')
 
     def broadcast(self, msg, receivers, to_self=True):
         for conn, addr in receivers:
@@ -335,7 +323,7 @@ class ChatServer(threading.Thread):
                     conn.send(msg + '\n>> ')
             # if current user
             else:
-                self.conn.send('>> ') if to_self else self.conn.send('')
+                self.conn.send('>> ') if to_self else self.conn.send(msg + '\n>> ')
 
     def help(self):
         self.print_indicator(
@@ -350,6 +338,7 @@ class ChatServer(threading.Thread):
             \n#[group_name]/leave       : leave group [group_name].\
             \n#[group_name]/list        : print all group members.\
             \n#[group_name] [message]   : send message to all group members.\
+            \n#[group_name] [ascii art] : send ascii art to all group members.\
             \n@[user_name]              : send message to user [user_name].\
             \n-------ascii art------\
             \n[/welcome] [/h5] [/fight] [/down] [/confuse]\
