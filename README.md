@@ -32,5 +32,9 @@ $telnet sherrychat.ddns.net 8888
 - `#[group_name] [message]`   : send message to all group members.
 - `@[user_name] [message]`    : send private message to user [user_name].
 
+##### ascii art / emoji
+- [`/welcome`] [`/h5`] [`/fight`] [`/down`] [`/confuse`]
+- [`/love`] [`/cry`] [`/angry`] [`/happy`] [`/awk`]
+
 
 
