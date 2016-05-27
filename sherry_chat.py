@@ -17,10 +17,10 @@ class ChatServer(threading.Thread):
 	threading.Thread.__init__(self)
 	self.conn = conn
 	self.addr = addr
-    self.id   = addr[1]
+        self.id   = addr[1]
 	self.ip   = addr[0]
 	self.name = ''
-    self.group = list()
+        self.group = list()
 
     def print_indicator(self, prompt):
     	self.conn.send('%s\n>> ' % (prompt,))
