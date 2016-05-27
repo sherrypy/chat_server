@@ -7,6 +7,7 @@
 
 #### Set Up
 - To run your own chat server. Simply running **sherry_chat.py** on any Linux server.
+- Make sure you have **emoji.py** file in same directory.
 
 #### Connect to Chat Server
 - Connect to chat server through **telnet** command in Linux bash:
