@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 import socket, select, string
 import sys
 import logging
 import time
 import threading
 from collections import defaultdict
+import emoji
 
 HOST = ''   # Symbolic name meaning all available interfaces
 PORT = 8888 # Arbitrary non-privileged port
@@ -15,10 +17,10 @@ class ChatServer(threading.Thread):
 	threading.Thread.__init__(self)
 	self.conn = conn
 	self.addr = addr
-        self.id   = addr[1]
+    self.id   = addr[1]
 	self.ip   = addr[0]
 	self.name = ''
-        self.group = list()
+    self.group = list()
 
     def print_indicator(self, prompt):
     	self.conn.send('%s\n>> ' % (prompt,))
@@ -33,12 +35,10 @@ class ChatServer(threading.Thread):
                      (self.addr[0], self.addr[1]))
         clients.add((self.conn, self.addr))
         msg = '\n----Welcome to Chat Server!----\n'
-
-        # new user
-        #print accounts
         msg += '[ Please enter your name: ]'
         self.print_indicator(msg)
         name = self.conn.recv(BUF_SIZE).strip()
+        # if it is a new user, create an account for it.
         if name not in accounts:
             accounts[name] = {
                 'pass': '',
@@ -52,8 +52,11 @@ class ChatServer(threading.Thread):
             password = self.conn.recv(BUF_SIZE)
             accounts[self.name]['pass'] = password.strip()
             self.print_indicator(
-                '\nEnter `!q` to quit.\nEnter`/help` to see all commands\n')
-            self.print_indicator('[ Welcome,%s! Enjoy your chat]\n' % self.name)
+                '\nEnter `!q` to quit.\
+                \nEnter`/help` to see all commands.\n')
+            self.print_indicator(
+                '[ Welcome,%s! Enjoy your chat!]\n%s' % 
+                (self.name,emoji.welcome()))
         else:
             self.name = name
             msg = '[ Hello %s, please enter your password:]\n' % (self.name,)
@@ -70,7 +73,8 @@ class ChatServer(threading.Thread):
                         (accounts[self.name]['lastlogin'],))
                     accounts[self.name]['lastlogin'] = time.ctime()
                     self.print_indicator(
-                        '\nEnter `!q` to quit.\nEnter`/help` to see all commands\n')
+                        '\nEnter `!q` to quit.\
+                        \nEnter`/help` to see all commands.\n')
                     break
             self.conn.send(self.show_mentions(self.name))
         self.broadcast('[%s] is online now' % (self.name,), clients, False)
@@ -87,9 +91,11 @@ class ChatServer(threading.Thread):
             del mute[self.id]
         except:
             pass
+        #remove user from all joined groups
         for group_name in self.group:
             groups[group_name].remove((self.conn, self.addr, self.name))
         clients.remove((self.conn, self.addr))
+        #broadcast to active users
         if onlines:
             self.broadcast('[ %s ] is offline now.\n' %
                            (self.name,), clients)
@@ -97,7 +103,6 @@ class ChatServer(threading.Thread):
         exit()
 
     def check_keyword(self, buf):
-        global onlines
         if buf.find('/help') == 0:
             self.help()
             return True
@@ -128,9 +133,10 @@ class ChatServer(threading.Thread):
                     self.group_post(group_name, msg)
                 except IndexError:
                     self.print_indicator(
-                        '--command not found.\nEnter `/help` to see all commands.')
+                        '--command not found.\
+                        \nEnter `/help` to see all commands.')
 
-            # to join / leave a group
+            # to join / leave a group, show group member list
             elif len(group_component) == 2:
                 group_name = group_component[0]
                 if group_component[1] == 'join':
@@ -155,6 +161,39 @@ class ChatServer(threading.Thread):
                 self.mention(from_user, to_user, msg)
             return True
 
+        # emoji
+        if buf.find('/welcome') == 0:
+            self.print_indicator(emoji.welcome())
+            return True
+        if buf.find('/h5') == 0:
+            self.print_indicator(emoji.highFive())
+            return True
+        if buf.find('/fight') == 0:
+            self.print_indicator(emoji.fight())
+            return True
+        if buf.find('/down') == 0:
+            self.print_indicator(emoji.lieDown())
+            return True
+        if buf.find('/confuse') == 0:
+            self.print_indicator(emoji.confuse())
+            return True
+        if buf.find('/love') == 0:
+            self.print_indicator(emoji.love())
+            return True
+        if buf.find('/cry') == 0:
+            self.print_indicator(emoji.cry())
+            return True
+        if buf.find('/angry') == 0:
+            self.print_indicator(emoji.angry())
+            return True
+        if buf.find('/happy') == 0:
+            self.print_indicator(emoji.happy())
+            return True
+        if buf.find('/awk') == 0:
+            self.print_indicator(emoji.awkward())
+            return True
+
+    #show all active users
     def list_user(self):
         res = ''
         for user in onlines.keys():
@@ -165,6 +204,7 @@ class ChatServer(threading.Thread):
         self.print_indicator(
             '[List of online users] \n%s' % (res,))
 
+    #show all the groups
     def list_group(self):
         res = ''
         for k,v in groups.items():
@@ -175,6 +215,7 @@ class ChatServer(threading.Thread):
         self.print_indicator(
             '[List of chat groups] \n%s' % (res,))
 
+    #send message only to group members
     def group_post(self, group_name, msg):
         global groups
         # if the group does not exist, create it
@@ -185,8 +226,10 @@ class ChatServer(threading.Thread):
             self.group_broadcast(msg, groups[group_name])
         else:
             self.print_indicator(
-                '## You are current not a member of group [%s]' % (group_name,))
+                '## You are current not a member of group [%s]' % 
+                (group_name,))
 
+    #show group members
     def group_members(self, group_name):
         if (self.conn, self.addr, self.name) in groups[group_name]:
             res = ''
@@ -199,26 +242,40 @@ class ChatServer(threading.Thread):
                 '## Members of group [%s] \n%s' % (group_name, res))
         else:
             self.print_indicator(
-                '## You are current not a member of group [%s]' % (group_name,))
+                '## You are current not a member of group [%s]' % 
+                (group_name,))
 
+    #join a group chat
     def group_join(self, group_name):
         global groups
-        self.group.append(group_name)
-        groups.setdefault(group_name, list())
-        groups[group_name].append((self.conn, self.addr, self.name))
-        self.print_indicator('## You have joined the group [%s]' %
-                             (group_name,))
+        if group_name in self.group:
+            self.print_indicator(
+                '## You are already a member of the group [%s]' %
+                (group_name,))
+        else:
+            self.group.append(group_name)
+            groups.setdefault(group_name, list())
+            groups[group_name].append((self.conn, self.addr, self.name))
+            self.print_indicator(
+                '## You have joined the group [%s]' %(group_name,))
 
+    #leave a group chat
     def group_leave(self, group_name):
         global groups
-        self.group.remove(group_name)
-        try:
-            groups[group_name].remove((self.conn, self.addr, self.name))
-            self.print_indicator('## You have left the group [%s]' %
-                                 (group_name,))
-        except Exception, e:
-            pass
+        if group_name in self.group:
+            self.group.remove(group_name)
+            try:
+                groups[group_name].remove((self.conn, self.addr, self.name))
+                self.print_indicator(
+                    '## You have left the group [%s]' %(group_name,))
+            except Exception, e:
+                pass
+        else:
+            self.print_indicator(
+                '## You are current not a member of group [%s]' % 
+                (group_name,))
 
+    #send message only to a specific user
     def mention(self, from_user, to_user, msg, read=0):
         global messages
         # print 'Messages', messages
@@ -228,6 +285,7 @@ class ChatServer(threading.Thread):
         else:
             self.print_indicator('## No such user named [%s]' % (to_user,))
 
+    #show messages directly sent to a user
     def show_mentions(self, name):
         global messages
         res = '[ Here are your messages:]\n'
@@ -246,7 +304,11 @@ class ChatServer(threading.Thread):
     #start receiving message from broadcast method
     def cancel_mute(self):
         global mute
-        del mute[self.id]
+        try:
+            #if user on mute mode
+            del mute[self.id]
+        except:
+            pass
         self.print_indicator('[ You are receiving broadcast messages ]')
 
     #stop receiving message from broadcast method
@@ -276,17 +338,22 @@ class ChatServer(threading.Thread):
                 self.conn.send('>> ') if to_self else self.conn.send('')
 
     def help(self):
-        self.print_indicator('[ This is Sherry\'s chat server. @author: Sherry.Xiao ]\n\
-        !q    : quit chat server.\n\
-        /u    : print all active users.\n\
-        /g    : print all chat groups.\n\
-        /mute : mute boradcast messages.\n\
-        /msg  : start to receiving broadcast messages.\n\
-        #[group_name]/join        : join group [group_name].\n\
-        #[group_name]/leave       : leave group [group_name].\n\
-        #[group_name]/list        : print all group members.\n\
-        #[group_name] [message]   : send message to all group members.\n\
-        @[user_name]              : send message to user [user_name].\n')
+        self.print_indicator(
+            '[ This is Sherry\'s chat server. @author: Sherry.Xiao ]\
+            \n/help : print all available commands.\
+            \n!q    : quit chat server.\
+            \n/u    : print all active users.\
+            \n/g    : print all chat groups.\
+            \n/mute : mute boradcast messages.\
+            \n/msg  : start to receiving broadcast messages.\
+            \n#[group_name]/join        : join group [group_name].\
+            \n#[group_name]/leave       : leave group [group_name].\
+            \n#[group_name]/list        : print all group members.\
+            \n#[group_name] [message]   : send message to all group members.\
+            \n@[user_name]              : send message to user [user_name].\
+            \n-------ascii art------\
+            \n[/welcome] [/h5] [/fight] [/down] [/confuse]\
+            \n[/love] [/cry] [/angry] [/happy] [/awk]\n')
 
     def run(self):
         global messages
@@ -299,6 +366,11 @@ class ChatServer(threading.Thread):
                 self.conn.settimeout(TIMEOUT)
                 buf = self.conn.recv(BUF_SIZE).strip()
                 logging.info('%s@%s: %s' % (self.name, self.addr[0], buf))
+                # if message is empty
+                if not buf.strip():
+                    self.print_indicator(
+                        '[Message to be sent cannot be empty!]')
+                    continue
                 # check features
                 if not self.check_keyword(buf):
                     # client broadcasts message to all
@@ -332,6 +404,7 @@ def main():
     # set up socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print 'Socket created'
+    #s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     
     #Bind socket to local host and port
     try:
