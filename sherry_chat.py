@@ -127,6 +127,12 @@ class ChatServer(threading.Thread):
             # to post in a group
             if len(group_component) == 1:
                 group_name = group_component[0]
+                #check if user is in this group
+                if group_name not in groups:
+                    self.print_indicator(
+		        '## You are current not a member of group [%s]' % 
+		        (group_name,))
+			return True
                 try:
                     emo = buf.split(' ')[1].strip()
                     emo = emoji.check_emoji(emo)
@@ -147,6 +153,11 @@ class ChatServer(threading.Thread):
             # to join / leave a group, show group member list
             elif len(group_component) == 2:
                 group_name = group_component[0]
+                if group_name not in groups:
+                    self.print_indicator(
+		        '## You are current not a member of group [%s]' % 
+		        (group_name,))
+			return True
                 if group_component[1] == 'join':
                     self.group_join(group_name)
                 elif group_component[1] == 'leave':
@@ -339,7 +350,7 @@ class ChatServer(threading.Thread):
             \n#[group_name]/list        : print all group members.\
             \n#[group_name] [message]   : send message to all group members.\
             \n#[group_name] [ascii art] : send ascii art to all group members.\
-            \n@[user_name]              : send message to user [user_name].\
+            \n@[user_name]  [message]   : send message to user [user_name].\
             \n-------ascii art------\
             \n[/welcome] [/h5] [/fight] [/down] [/confuse]\
             \n[/love] [/cry] [/angry] [/happy] [/awk]\n')
