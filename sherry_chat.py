@@ -33,6 +33,7 @@ class ChatServer(threading.Thread):
 
         logging.info('Connected from: %s:%s' %
                      (self.addr[0], self.addr[1]))
+        # add new user to online client list
         clients.add((self.conn, self.addr))
         msg = '\n----Welcome to Chat Server!----\n'
         msg += '[ Please enter your name: ]'
@@ -57,6 +58,7 @@ class ChatServer(threading.Thread):
             self.conn.send(
                 '\n[ Welcome,%s! Enjoy your chat!]%s\n' % 
                 (self.name,emoji.welcome()))
+        # if user name already exsist, ask for password
         else:
             self.name = name
             msg = '[ Hello %s, please enter your password:]\n' % (self.name,)
@@ -87,6 +89,7 @@ class ChatServer(threading.Thread):
         global groups
         global mute
         self.conn.send('[ Bye! ]\n')
+        # remove user from online list and clean other info.
         del onlines[self.name]
         try:
             del mute[self.id]
@@ -121,6 +124,7 @@ class ChatServer(threading.Thread):
         if buf.find('/msg') == 0:
             self.cancel_mute()
             return True
+        # group instruction
         if buf.find('#') == 0:
             group_keyword = buf.split(' ')[0][1:]
             group_component = group_keyword.split('/')
@@ -136,6 +140,7 @@ class ChatServer(threading.Thread):
                     return True
                 try:
                     emo = buf.split(' ')[1].strip()
+                    # check if the message is a emoji
                     emo = emoji.check_emoji(emo)
                     if emo:
                         msg = '[%s]%s: %s' % (
@@ -164,16 +169,18 @@ class ChatServer(threading.Thread):
                     self.print_indicator(
                         '--command not found.\
                         \nEnter `/help` to see all commands.')
+            # invailid command
             else:
                 self.print_indicator(
                     '--command not found.\
                     \nEnter `/help` to see all commands.')
             return True
-
+        # send private message to someone
         if buf.find('@') == 0:
             to_user = buf.split(' ')[0][1:]
             from_user = self.name
             msg = buf.split(' ', 1)[1]
+            # check if the message is an emoji
             emo = emoji.check_emoji(msg)
             if emo:
                 msg = emo
@@ -186,7 +193,7 @@ class ChatServer(threading.Thread):
                 self.mention(from_user, to_user, msg)
             return True
 
-        # emoji
+        # check if the message is an emoji
         msg = emoji.check_emoji(buf)
         if msg:
             self.broadcast('%s: %s' % (self.name, msg), clients)
@@ -205,7 +212,7 @@ class ChatServer(threading.Thread):
         self.print_indicator(
             '[List of online users] \n%s' % (res,))
 
-    #show all the groups
+    #show all the groups, and number of members
     def list_group(self):
         res = ''
         for k,v in groups.items():
@@ -232,6 +239,7 @@ class ChatServer(threading.Thread):
 
     #show group members
     def group_members(self, group_name):
+        # if user is in this group
         if (self.conn, self.addr, self.name) in groups[group_name]:
             res = ''
             for group_member in groups[group_name]:
@@ -241,6 +249,7 @@ class ChatServer(threading.Thread):
                     res += '%s\n' % group_member[2]
             self.print_indicator(
                 '## Members of group [%s] \n%s' % (group_name, res))
+        # if user is not in this group
         else:
             self.print_indicator(
                 '## You are current not a member of group [%s]' % 
@@ -263,6 +272,7 @@ class ChatServer(threading.Thread):
     #leave a group chat
     def group_leave(self, group_name):
         global groups
+        # if user is in this group, remove it from group members
         if group_name in self.group:
             self.group.remove(group_name)
             try:
@@ -271,6 +281,7 @@ class ChatServer(threading.Thread):
                     '## You have left the group [%s]' % (group_name,))
             except Exception, e:
                 pass
+        # if user is not in this group
         else:
             self.print_indicator(
                 '## You are current not a member of group [%s]' % 
@@ -311,7 +322,7 @@ class ChatServer(threading.Thread):
         except:
             pass
         self.print_indicator('[ You are receiving broadcast messages. ]')
-        self.broadcast('[%s] now receiving broadcast messages.' % 
+        self.broadcast('[%s] is now receiving broadcast messages.' % 
             (self.name,), clients)
 
     #stop receiving message from broadcast method
