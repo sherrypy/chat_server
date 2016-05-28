@@ -10,7 +10,8 @@
 - Make sure you have **emoji.py** file in same directory.
 
 #### Connect to Chat Server
-- Connect to chat server through **telnet** command in Linux bash:
+- Connect to chat server through **telnet** command in Linux bash.
+- For example, you can connect to my chat server by:
   - hostname: sherrychat.ddns.net
   - Port: 8888
 ```bash
