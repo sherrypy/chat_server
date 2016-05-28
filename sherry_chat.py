@@ -14,16 +14,16 @@ TIMEOUT = 5
 
 class ChatServer(threading.Thread):
     def __init__(self, conn, addr):
-	threading.Thread.__init__(self)
-	self.conn = conn
-	self.addr = addr
+        threading.Thread.__init__(self)
+        self.conn = conn
+        self.addr = addr
         self.id   = addr[1]
-	self.ip   = addr[0]
-	self.name = ''
+        self.ip   = addr[0]
+        self.name = ''
         self.group = list()
 
     def print_indicator(self, prompt):
-    	self.conn.send('%s\n>> ' % (prompt,))
+        self.conn.send('%s\n>> ' % (prompt,))
 
     def login(self):
         global clients
@@ -51,11 +51,11 @@ class ChatServer(threading.Thread):
                 '[ Hello %s, please create your password:]' % (self.name,))
             password = self.conn.recv(BUF_SIZE)
             accounts[self.name]['pass'] = password.strip()
-            self.print_indicator(
+            self.conn.send(
                 '\nEnter `!q` to quit.\
                 \nEnter`/help` to see all commands.\n')
-            self.print_indicator(
-                '[ Welcome,%s! Enjoy your chat!]\n%s' % 
+            self.conn.send(
+                '\n[ Welcome,%s! Enjoy your chat!]%s\n' % 
                 (self.name,emoji.welcome()))
         else:
             self.name = name
@@ -72,12 +72,13 @@ class ChatServer(threading.Thread):
                         '[ Welcome back, last login: %s]\n' %
                         (accounts[self.name]['lastlogin'],))
                     accounts[self.name]['lastlogin'] = time.ctime()
-                    self.print_indicator(
+                    self.conn.send(
                         '\nEnter `!q` to quit.\
-                        \nEnter`/help` to see all commands.\n')
+                        \nEnter`/help` to see all commands.%s\n' % 
+                        emoji.highFive())
                     break
             self.conn.send(self.show_mentions(self.name))
-        self.broadcast('[%s] is online now' % (self.name,), clients, False)
+        self.broadcast('[%s] is online now' % (self.name,), clients)
         onlines[self.name] = self.conn
 
     def logoff(self):
@@ -130,9 +131,9 @@ class ChatServer(threading.Thread):
                 #check if user is in this group
                 if group_name not in groups:
                     self.print_indicator(
-		        '## You are current not a member of group [%s]' % 
-		        (group_name,))
-			return True
+                        '## You are current not a member of group [%s]' % 
+                        (group_name,))
+                    return True
                 try:
                     emo = buf.split(' ')[1].strip()
                     emo = emoji.check_emoji(emo)
@@ -153,11 +154,6 @@ class ChatServer(threading.Thread):
             # to join / leave a group, show group member list
             elif len(group_component) == 2:
                 group_name = group_component[0]
-                if group_name not in groups:
-                    self.print_indicator(
-		        '## You are current not a member of group [%s]' % 
-		        (group_name,))
-			return True
                 if group_component[1] == 'join':
                     self.group_join(group_name)
                 elif group_component[1] == 'leave':
@@ -168,13 +164,19 @@ class ChatServer(threading.Thread):
                     self.print_indicator(
                         '--command not found.\
                         \nEnter `/help` to see all commands.')
+            else:
+                self.print_indicator(
+                    '--command not found.\
+                    \nEnter `/help` to see all commands.')
             return True
 
         if buf.find('@') == 0:
             to_user = buf.split(' ')[0][1:]
             from_user = self.name
             msg = buf.split(' ', 1)[1]
-
+            emo = emoji.check_emoji(msg)
+            if emo:
+                msg = emo
             # if user is online
             if to_user in onlines:
                 onlines[to_user].send('@%s: %s\n>> ' % (from_user, msg))
@@ -266,7 +268,7 @@ class ChatServer(threading.Thread):
             try:
                 groups[group_name].remove((self.conn, self.addr, self.name))
                 self.print_indicator(
-                    '## You have left the group [%s]' %(group_name,))
+                    '## You have left the group [%s]' % (group_name,))
             except Exception, e:
                 pass
         else:
@@ -289,7 +291,7 @@ class ChatServer(threading.Thread):
         global messages
         res = '[ Here are your messages:]\n'
         if not messages[name]:
-            res += '   No messages available\n>> '
+            res += '   No messages available\n'
             return res
         for msg in messages[name]:
             if msg[2] == 0:
@@ -308,13 +310,17 @@ class ChatServer(threading.Thread):
             del mute[self.id]
         except:
             pass
-        self.print_indicator('[ You are receiving broadcast messages ]')
+        self.print_indicator('[ You are receiving broadcast messages. ]')
+        self.broadcast('[%s] now receiving broadcast messages.' % 
+            (self.name,), clients)
 
     #stop receiving message from broadcast method
     def mute_broadcast(self):
         global mute
         mute[self.id] = 1
         self.print_indicator('[ You have muted the broadcast messages ]')
+        self.broadcast('[%s] have muted the broadcast messages.' % 
+            (self.name,), clients)
 
     #only send message to group members
     def group_broadcast(self, msg, receivers, to_self=True):
@@ -404,7 +410,7 @@ def main():
     # set up socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print 'Socket created'
-    #s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     
     #Bind socket to local host and port
     try:
@@ -422,7 +428,7 @@ def main():
         try:
             conn, addr = s.accept()
             server = ChatServer(conn, addr)
-	    server.start()
+            server.start()
             #start_new_thread(server.run(),(conn,addr))
         except Exception, e:
             print e
