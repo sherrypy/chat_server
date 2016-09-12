@@ -1,3 +1,5 @@
+Created by Sherry
+
 #### Features
 - Share your thoughts with everyone online.
 - Mute broadcast messages whenever you get annoyed.
